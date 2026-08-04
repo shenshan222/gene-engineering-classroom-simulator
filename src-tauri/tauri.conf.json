@@ -1,0 +1,55 @@
+{
+  "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
+  "productName": "基因工程课堂实验",
+  "version": "0.1.0",
+  "identifier": "com.shenshan.genelab",
+  "build": {
+    "frontendDist": "../dist-static",
+    "devUrl": "http://localhost:1420",
+    "beforeDevCommand": "npm run desktop:web:dev",
+    "beforeBuildCommand": "npm run desktop:web:build"
+  },
+  "app": {
+    "windows": [
+      {
+        "title": "基因工程课堂实验",
+        "width": 1280,
+        "height": 760,
+        "minWidth": 960,
+        "minHeight": 640,
+        "center": true,
+        "resizable": true,
+        "fullscreen": false
+      }
+    ],
+    "security": {
+      "csp": null
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": ["nsis"],
+    "publisher": "shenshan222",
+    "category": "Education",
+    "shortDescription": "高中生物基因工程课堂交互实验工具",
+    "longDescription": "面向高中生物课堂的基因工程交互模拟工具，支持限制酶切割、DNA 片段连接、PCR 引物选择和随机出题。",
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.icns",
+      "icons/icon.ico"
+    ],
+    "windows": {
+      "webviewInstallMode": {
+        "type": "downloadBootstrapper",
+        "silent": true
+      },
+      "nsis": {
+        "installMode": "currentUser",
+        "languages": ["SimpChinese", "English"],
+        "displayLanguageSelector": false
+      }
+    }
+  }
+}

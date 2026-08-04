@@ -8,11 +8,15 @@
   "scripts": {
     "dev": "vinext dev",
     "build": "vinext build",
+    "desktop:web:dev": "vite --config vite.desktop.config.ts",
+    "desktop:web:build": "vite build --config vite.desktop.config.ts",
+    "desktop:dev": "tauri dev",
+    "desktop:build": "tauri build --bundles nsis",
     "start": "vinext start",
     "test": "vitest run --config vitest.config.ts",
     "test:watch": "vitest --config vitest.config.ts",
     "typecheck": "tsc --noEmit",
-    "lint": "eslint . --ignore-pattern dist --ignore-pattern .next",
+    "lint": "eslint . --ignore-pattern dist --ignore-pattern dist-static --ignore-pattern src-tauri/target --ignore-pattern .next",
     "check": "npm run typecheck && npm run test && npm run build"
   },
   "dependencies": {
@@ -25,6 +29,7 @@
   "devDependencies": {
     "@cloudflare/vite-plugin": "1.37.1",
     "@tailwindcss/postcss": "4.2.1",
+    "@tauri-apps/cli": "^2.11.4",
     "@types/node": "22.19.19",
     "@types/react": "19.2.14",
     "@types/react-dom": "19.2.3",

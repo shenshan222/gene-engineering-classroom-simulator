@@ -4,7 +4,7 @@
 
 项目同时提供固定学案和随机训练两种模式，适合课堂演示、学生自主练习和基因工程基本操作复习。
 
-> 当前版本：`0.1.0`。核心课堂功能已经可用，桌面安装包和公开在线演示仍在准备中。
+> 当前版本：`0.1.0`。核心课堂功能和 Windows 安装包构建链已经可用，公开在线演示仍在准备中。
 
 ## 主要特性
 
@@ -46,7 +46,28 @@
 
 ## 快速开始
 
-### 环境要求
+### 教师直接使用 Windows 安装包
+
+开发者执行 `npm run desktop:build` 后，会在以下目录生成 64 位 Windows 安装程序：
+
+```text
+src-tauri/target/release/bundle/nsis/基因工程课堂实验_0.1.0_x64-setup.exe
+```
+
+将该文件复制到教师电脑并双击安装即可。安装程序具有以下特点：
+
+- 按当前用户安装，不需要管理员权限。
+- 安装器优先使用系统已有的 Microsoft Edge WebView2 Runtime。
+- 若电脑缺少 WebView2，安装器会联网静默补装；已有运行时则不会重复安装。
+- 应用每次启动都会再次检测 WebView2，可用性异常时会显示中文提示并安全退出。
+- 安装完成后可从开始菜单启动，不需要另行安装 Node.js、npm 或 Rust。
+- 题目生成、学生操作与结果判定均在本机完成，不需要服务器。
+
+当前安装包约 2 MB。首次安装成功后，课堂使用不需要联网；对于完全不能联网且缺少 WebView2 的旧电脑，应提前单独安装 WebView2 Runtime，或另行构建包含运行时的完整离线包。
+
+当前安装程序尚未进行商业代码签名。Windows 可能显示“未知发布者”或 Microsoft Defender SmartScreen 提示；正式面向校外分发前，建议申请代码签名证书。
+
+### 源码运行环境
 
 - Node.js 22.13.0 或更高版本
 - npm
@@ -87,7 +108,7 @@ npm.cmd run dev
 5. 根据即时反馈修正操作；完成后可查看随机题解析。
 6. 需要全班完成同一道随机题时，复制页面地址或种子进行分享。
 
-当前源码运行方式需要在教师电脑上安装 Node.js。面向普通教师的 Windows 离线安装包尚未发布，计划通过静态构建和桌面容器实现双击即用。
+日常课堂优先使用 Windows 安装版；源码运行方式主要用于开发、调试和网页版部署。
 
 ## 技术实现
 
@@ -95,8 +116,12 @@ npm.cmd run dev
 - TypeScript 5
 - Vite 8
 - Vinext
+- Tauri 2
+- Rust
 - Vitest
 - Cloudflare Vite Plugin
+
+项目保留两条互不干扰的构建链：Vinext 用于网页开发与后续在线部署，静态 Vite 入口用于 Tauri 桌面应用。Tauri 将静态资源封装进 Windows WebView2 容器，应用运行时不启动本地 HTTP 服务器。
 
 核心领域逻辑与界面组件分离：
 
@@ -112,17 +137,21 @@ npm.cmd run dev
 ```text
 gene-engineering-classroom-simulator/
 ├── app/                         # 页面入口与全局样式
+├── index.html                   # Tauri 静态前端入口
 ├── src/
 │   ├── components/              # DNA、工具栏、画布和活动组件
 │   ├── content/                 # 学案任务与限制酶数据
 │   ├── domain/                  # 酶切、连接、PCR和随机题算法
 │   │   └── random/              # 随机生成、求解和校验
 │   ├── hooks/                   # 拖动与指针交互
-│   └── state/                   # 活动状态机和随机会话
+│   ├── state/                   # 活动状态机和随机会话
+│   └── desktop-main.tsx         # Tauri 静态 React 入口
+├── src-tauri/                   # Tauri/Rust 桌面应用和安装器配置
 ├── tests/                       # 单元测试、回归测试和属性测试
 ├── public/                      # 静态资源
 ├── package.json
-└── vite.config.ts
+├── vite.config.ts               # Vinext 网页构建配置
+└── vite.desktop.config.ts       # Tauri 静态前端构建配置
 ```
 
 ## 可用命令
@@ -130,12 +159,33 @@ gene-engineering-classroom-simulator/
 | 命令 | 作用 |
 | --- | --- |
 | `npm run dev` | 启动本地开发服务器 |
+| `npm run desktop:web:dev` | 单独启动桌面端静态前端开发服务器 |
+| `npm run desktop:dev` | 以 Tauri 开发模式启动 Windows 应用 |
+| `npm run desktop:web:build` | 生成桌面端静态前端资源 |
+| `npm run desktop:build` | 生成自动检测并按需补装 WebView2 的 Windows NSIS 安装包 |
 | `npm run typecheck` | 执行 TypeScript 类型检查 |
 | `npm run lint` | 执行 ESLint 检查 |
 | `npm run test` | 运行全部 Vitest 测试 |
 | `npm run test:watch` | 以监听模式运行测试 |
 | `npm run build` | 生成生产构建 |
 | `npm run check` | 依次执行类型检查、测试和构建 |
+
+### 构建 Windows 安装包
+
+除 Node.js 与 npm 外，首次构建还需要：
+
+- Rust stable MSVC 工具链。
+- Microsoft Visual Studio 2022 Build Tools 的“使用 C++ 的桌面开发”组件。
+- 构建阶段可访问 crates.io 和 GitHub Releases。
+
+在 64 位 Windows 中执行：
+
+```powershell
+npm install
+npm run desktop:build
+```
+
+首次构建需要下载 Rust 依赖和 NSIS，耗时较长。当前生成的安装包约 2 MB；后续构建会复用本机缓存。目标电脑仅在缺少 WebView2 时需要在安装过程中联网。
 
 ## 测试与质量保证
 
@@ -165,7 +215,8 @@ npm run build
 
 ## 后续计划
 
-- 生成适合教师使用的 Windows 离线安装包。
+- 通过 GitHub Releases 发布经过人工验证的 Windows 安装包。
+- 为公开发布版本配置 Windows 代码签名。
 - 部署公开在线演示版本。
 - 增加课堂局域网启动模式。
 - 补充正式的教师使用说明和课堂截图。
