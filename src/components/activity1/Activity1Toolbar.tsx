@@ -1,4 +1,5 @@
 import { findRestrictionEnzyme } from "@/src/content/enzymeLibrary";
+import { complement } from "@/src/domain/sequence";
 import type { Activity1Tool } from "@/src/state/activity1Workbench";
 
 interface Activity1ToolbarProps {
@@ -45,9 +46,13 @@ function toolDefinition(toolId: Activity1Tool) {
     symbol:
       enzyme.recognition.slice(0, enzyme.topCutOffset) +
       "│" +
-      enzyme.recognition.slice(enzyme.topCutOffset),
+      enzyme.recognition.slice(enzyme.topCutOffset) +
+      "\n" +
+      complement(enzyme.recognition).slice(0, enzyme.bottomCutOffset) +
+      "│" +
+      complement(enzyme.recognition).slice(enzyme.bottomCutOffset),
     label: enzyme.name,
-    detail: "点击碱基间切割",
+    detail: "点击上链切口，形成错位末端",
   };
 }
 

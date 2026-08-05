@@ -312,6 +312,9 @@ p {
   font-family: Consolas, "Courier New", monospace;
   font-size: 12px;
   font-weight: 500;
+  line-height: 1.25;
+  text-align: left;
+  white-space: pre;
 }
 
 .operation-feedback {
@@ -612,7 +615,7 @@ p {
   touch-action: manipulation;
 }
 
-.bond-button > span {
+.bond-button > .bond-guide {
   position: absolute;
   top: 7px;
   bottom: 7px;
@@ -633,6 +636,43 @@ p {
   width: 3px;
   left: 7px;
   background: var(--destructive);
+}
+
+.tool-ecoRI .bond-button.valid-site:not(:disabled):hover > .bond-guide,
+.tool-ecoRI .bond-button.valid-site:not(:disabled):focus-visible > .bond-guide,
+.tool-munI .bond-button.valid-site:not(:disabled):hover > .bond-guide,
+.tool-munI .bond-button.valid-site:not(:disabled):focus-visible > .bond-guide {
+  background: transparent;
+}
+
+.strand-cut-marker {
+  position: absolute;
+  z-index: 3;
+  right: -2px;
+  width: 3px;
+  height: 24px;
+  border-radius: 2px;
+  background: var(--destructive);
+  box-shadow: 0 0 0 2px var(--destructive-soft);
+  pointer-events: none;
+}
+
+.strand-cut-marker.top {
+  top: 1px;
+}
+
+.strand-cut-marker.bottom {
+  bottom: 1px;
+}
+
+.base-unit.overhang-preview .base-letter {
+  background: var(--accent-soft);
+  box-shadow: inset 0 -3px 0 var(--accent);
+}
+
+.base-unit.overhang-preview .base-bridge {
+  width: 2px;
+  background: var(--accent);
 }
 
 .pcr-toolbar {
@@ -792,7 +832,7 @@ p {
   font-weight: 500;
 }
 
-.bond-button.invalid > span {
+.bond-button.invalid > .bond-guide {
   width: 3px;
   left: 7px;
   background: var(--destructive);
@@ -815,30 +855,105 @@ p {
 .sticky-end {
   position: relative;
   display: grid;
-  place-items: center;
-  width: 52px;
-  min-width: 52px;
-  min-height: 40px;
-  padding: 4px;
+  width: max-content;
+  min-width: 72px;
+  min-height: 58px;
+  padding: 4px 5px;
   border-color: var(--accent);
+  border-style: dashed;
   color: var(--foreground);
-  background: var(--accent-soft);
+  background: color-mix(in srgb, var(--accent-soft) 55%, var(--surface-strong));
   font-family: Consolas, "Courier New", monospace;
   font-size: 11px;
-  letter-spacing: 0.05em;
+  letter-spacing: 0;
   touch-action: manipulation;
 }
 
 .sticky-end.left {
-  margin-left: -5px;
-  margin-right: 4px;
-  clip-path: polygon(0 28%, 36% 28%, 36% 0, 100% 0, 100% 100%, 0 100%);
+  margin-right: 3px;
+  border-radius: 8px 2px 2px 8px;
 }
 
 .sticky-end.right {
-  margin-left: 4px;
-  margin-right: -5px;
-  clip-path: polygon(0 0, 64% 0, 64% 28%, 100% 28%, 100% 100%, 0 100%);
+  margin-left: 3px;
+  border-radius: 2px 8px 8px 2px;
+}
+
+.sticky-end:disabled {
+  opacity: 1;
+}
+
+.sticky-end-row {
+  display: grid;
+  grid-template-columns: 18px auto 18px;
+  align-items: center;
+  min-height: 24px;
+}
+
+.sticky-end-terminal {
+  color: var(--muted);
+  font-size: 10px;
+  text-align: center;
+}
+
+.sticky-end-bases {
+  position: relative;
+  display: grid;
+  grid-auto-columns: 18px;
+  grid-auto-flow: column;
+  min-height: 22px;
+}
+
+.sticky-end-base {
+  display: grid;
+  place-items: center;
+  width: 18px;
+  height: 22px;
+}
+
+.sticky-end-base.unpaired {
+  border-radius: 4px;
+  background: var(--accent-soft);
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.sticky-end-row.top .sticky-end-base.unpaired {
+  box-shadow: inset 0 -2px 0 var(--accent);
+}
+
+.sticky-end-row.bottom .sticky-end-base.unpaired {
+  box-shadow: inset 0 2px 0 var(--accent);
+}
+
+.sticky-end-base.gap {
+  background: transparent;
+}
+
+.sticky-end.end-blunt .sticky-end-bases {
+  width: 12px;
+  min-width: 12px;
+}
+
+.sticky-end.compatible:not(.selected) {
+  border-style: solid;
+  border-color: var(--success);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--success) 22%, transparent);
+}
+
+.end-compatible-mark {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  display: grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  color: var(--surface-strong);
+  background: var(--success);
+  font-family: inherit;
+  font-size: 11px;
 }
 
 .sticky-end.selected {
@@ -847,14 +962,18 @@ p {
   border-color: var(--primary);
 }
 
-.tool-ligase .sticky-end:not(:disabled) {
-  animation: end-ready 1.4s ease-in-out infinite;
+.sticky-end.selected .sticky-end-terminal,
+.sticky-end.selected .sticky-end-base.unpaired {
+  color: inherit;
 }
 
-@keyframes end-ready {
-  50% {
-    box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent) 18%, transparent);
-  }
+.sticky-end.selected .sticky-end-base.unpaired {
+  background: color-mix(in srgb, var(--surface-strong) 18%, transparent);
+  box-shadow: inset 0 -2px 0 currentColor;
+}
+
+.tool-ligase .sticky-end:not(:disabled):not(.selected):not(.compatible) {
+  border-style: solid;
 }
 
 @media (prefers-reduced-motion: reduce) {

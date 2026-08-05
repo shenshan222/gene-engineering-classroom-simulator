@@ -1,8 +1,11 @@
 "use client";
 
-import type { RefObject } from "react";
+import { useState, type RefObject } from "react";
 
 import { BasePairCell } from "@/src/components/activity1/BasePairCell";
+import { StickyEndHandle } from "@/src/components/activity1/StickyEndHandle";
+import { findRestrictionEnzyme } from "@/src/content/enzymeLibrary";
+import { scanRestrictionSites } from "@/src/domain/restriction";
 import { useCanvasDrag } from "@/src/hooks/useCanvasDrag";
 import type {
   Activity1Tool,
@@ -20,6 +23,7 @@ interface GeneWidgetProps {
   eventSequence: number;
   headerActionLabel?: string;
   headerActionSelected?: boolean;
+  compatibleEnds?: Partial<Record<"left" | "right", boolean>>;
   onBringToFront: (objectId: string) => void;
   onCircularize: (objectId: string) => void;
   onCut: (objectId: string, bondIndex: number) => void;
@@ -38,6 +42,7 @@ export function GeneWidget({
   eventSequence,
   headerActionLabel,
   headerActionSelected = false,
+  compatibleEnds = {},
   onBringToFront,
   onCircularize,
   onCut,
@@ -45,6 +50,7 @@ export function GeneWidget({
   onHeaderAction,
   onMove,
 }: GeneWidgetProps) {
+  const [previewBondIndex, setPreviewBondIndex] = useState<number | null>(null);
   const drag = useCanvasDrag({
     canvasRef,
     objectId: object.id,
@@ -56,6 +62,27 @@ export function GeneWidget({
   const bases = Array.from(object.topStrand);
   const leftSelectable = Boolean(object.leftEnd.createdBy);
   const rightSelectable = Boolean(object.rightEnd.createdBy);
+  const selectedEnzyme = findRestrictionEnzyme(activeTool);
+  const restrictionSites = selectedEnzyme
+    ? scanRestrictionSites(
+        {
+          id: object.id,
+          name: object.name,
+          topology: object.topology,
+          topStrand: object.topStrand,
+          features: object.features,
+          foldedRegions: object.foldedRegions,
+          sourceTaskId: object.sourceTaskId,
+        },
+        selectedEnzyme,
+      )
+    : [];
+  const previewSite = restrictionSites.find(
+    (site) => site.topBondIndex === previewBondIndex,
+  );
+  const validCutBonds = new Set(
+    restrictionSites.map((site) => site.topBondIndex),
+  );
   const canCircularize =
     activeTool === "circularize" &&
     canCircularizeObject &&
@@ -74,10 +101,21 @@ export function GeneWidget({
     );
   }
 
-  function endClass(side: "left" | "right") {
-    const selected =
-      selectedEnd?.objectId === object.id && selectedEnd.side === side;
-    return `sticky-end ${side} ${selected ? "selected" : ""}`;
+  function endSelected(side: "left" | "right") {
+    return selectedEnd?.objectId === object.id && selectedEnd.side === side;
+  }
+
+  function isPreviewOverhang(index: number) {
+    if (!previewSite) return false;
+    const start = Math.min(
+      previewSite.topBondIndex,
+      previewSite.bottomBondIndex,
+    );
+    const end = Math.max(
+      previewSite.topBondIndex,
+      previewSite.bottomBondIndex,
+    );
+    return index >= start && index < end;
   }
 
   return (
@@ -121,22 +159,22 @@ export function GeneWidget({
       </header>
 
       <div className="gene-sequence">
-        <div className="strand-labels" aria-hidden="true">
-          <span>5′</span>
-          <span>3′</span>
-        </div>
-
-        {leftSelectable && (
-          <button
-            aria-label={`选择${object.name}左侧 ${object.leftEnd.sequence5to3} 黏性末端`}
-            className={endClass("left")}
-            data-no-drag
+        {leftSelectable ? (
+          <StickyEndHandle
+            compatible={compatibleEnds.left ?? false}
             disabled={activeTool !== "ligase"}
-            onClick={() => onEndSelect({ objectId: object.id, side: "left" })}
-            type="button"
-          >
-            <span>{object.leftEnd.sequence5to3 || "平端"}</span>
-          </button>
+            end={object.leftEnd}
+            objectName={object.name}
+            onSelect={() =>
+              onEndSelect({ objectId: object.id, side: "left" })
+            }
+            selected={endSelected("left")}
+          />
+        ) : (
+          <div className="strand-labels" aria-hidden="true">
+            <span>5′</span>
+            <span>3′</span>
+          </div>
         )}
 
         <div className="base-pair-strip">
@@ -155,28 +193,33 @@ export function GeneWidget({
               invalidSequence={eventSequence}
               key={`${object.id}:base-${index}`}
               objectName={object.name}
+              onPreview={setPreviewBondIndex}
               onCut={(bondIndex) => onCut(object.id, bondIndex)}
+              overhangPreview={isPreviewOverhang(index)}
+              topCutPreview={previewSite?.topBondIndex === index + 1}
+              bottomCutPreview={previewSite?.bottomBondIndex === index + 1}
+              validCutSite={validCutBonds.has(index + 1)}
             />
           ))}
         </div>
 
-        {rightSelectable && (
-          <button
-            aria-label={`选择${object.name}右侧 ${object.rightEnd.sequence5to3} 黏性末端`}
-            className={endClass("right")}
-            data-no-drag
+        {rightSelectable ? (
+          <StickyEndHandle
+            compatible={compatibleEnds.right ?? false}
             disabled={activeTool !== "ligase"}
-            onClick={() => onEndSelect({ objectId: object.id, side: "right" })}
-            type="button"
-          >
-            <span>{object.rightEnd.sequence5to3 || "平端"}</span>
-          </button>
+            end={object.rightEnd}
+            objectName={object.name}
+            onSelect={() =>
+              onEndSelect({ objectId: object.id, side: "right" })
+            }
+            selected={endSelected("right")}
+          />
+        ) : (
+          <div className="strand-labels ending" aria-hidden="true">
+            <span>3′</span>
+            <span>5′</span>
+          </div>
         )}
-
-        <div className="strand-labels ending" aria-hidden="true">
-          <span>3′</span>
-          <span>5′</span>
-        </div>
       </div>
     </article>
   );

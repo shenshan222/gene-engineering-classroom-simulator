@@ -12,6 +12,7 @@ import {
 } from "@/src/domain/random/canonical";
 import { solveLigationTask } from "@/src/domain/random/solver";
 import { scanRestrictionSites } from "@/src/domain/restriction";
+import { complement } from "@/src/domain/sequence";
 import type {
   DNAEnd,
   FoldedRegion,
@@ -175,13 +176,18 @@ function isExpectedProduct(
 function toolInstruction(tool: Activity1Tool): Activity1Feedback {
   const enzyme = findRestrictionEnzyme(tool);
   if (enzyme) {
-    const markedRecognition =
+    const markedTop =
       enzyme.recognition.slice(0, enzyme.topCutOffset) +
       "│" +
       enzyme.recognition.slice(enzyme.topCutOffset);
+    const bottom = complement(enzyme.recognition);
+    const markedBottom =
+      bottom.slice(0, enzyme.bottomCutOffset) +
+      "│" +
+      bottom.slice(enzyme.bottomCutOffset);
     return {
       kind: "info",
-      message: `${enzyme.name}已选中：点击碱基间隙，寻找 5′-${markedRecognition}-3′切点。`,
+      message: `${enzyme.name}已选中：寻找 5′-${markedTop}-3′ / 3′-${markedBottom}-5′错位切点。`,
     };
   }
   switch (tool) {
@@ -332,6 +338,10 @@ export function cutActivity1Object(
   }
 
   const fragments = digestMolecule(molecule, [site]).fragments;
+  const endDescription =
+    site.overhangType === "blunt"
+      ? "平末端"
+      : `${site.overhangType === "fivePrime" ? "5′" : "3′"}-${site.overhangSequence5to3} 黏性末端`;
   let nextX = object.x;
   const childObjects = fragments.map((fragment, index) => {
     const wasCircular = object.topology === "circular";
@@ -372,7 +382,12 @@ export function cutActivity1Object(
       selectedEnd: null,
       feedback: {
         kind: "success",
-        message: wasCircularMessage(object, enzyme.name, fragments.length),
+        message: wasCircularMessage(
+          object,
+          enzyme.name,
+          fragments.length,
+          endDescription,
+        ),
       },
       invalidBond: null,
       eventSequence: snapshot.eventSequence + 1,
@@ -386,10 +401,11 @@ function wasCircularMessage(
   object: CanvasDNAObject,
   enzymeName: string,
   fragmentCount: number,
+  endDescription: string,
 ): string {
   return object.topology === "circular"
-    ? `${object.name}被${enzymeName}单点切开，已展开为线性 DNA。`
-    : `${object.name}已被${enzymeName}切开，生成 ${fragmentCount} 个可拖动片段。`;
+    ? `${object.name}被${enzymeName}单点切开，已展开为带${endDescription}的线性 DNA。`
+    : `${object.name}已被${enzymeName}错位切开，生成 ${fragmentCount} 个带${endDescription}的可拖动片段。`;
 }
 
 function circularizeObject(

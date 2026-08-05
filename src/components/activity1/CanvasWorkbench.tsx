@@ -3,8 +3,10 @@
 import { useRef } from "react";
 
 import { GeneWidget } from "@/src/components/activity1/GeneWidget";
+import { canLigate } from "@/src/domain/ligation";
 import type {
   Activity1Snapshot,
+  CanvasDNAObject,
   EndReference,
 } from "@/src/state/activity1Workbench";
 
@@ -34,6 +36,35 @@ export function CanvasWorkbench({
       (object) => object.x + object.topStrand.length * 27 + 220,
     ),
   );
+  const selectedObject = snapshot.selectedEnd
+    ? snapshot.objects.find(
+        (object) => object.id === snapshot.selectedEnd?.objectId,
+      )
+    : undefined;
+
+  function endOf(object: CanvasDNAObject, side: "left" | "right") {
+    return side === "left" ? object.leftEnd : object.rightEnd;
+  }
+
+  function isCompatibleEnd(
+    object: CanvasDNAObject,
+    side: "left" | "right",
+  ) {
+    if (!snapshot.selectedEnd || !selectedObject) return false;
+    if (
+      snapshot.selectedEnd.objectId === object.id &&
+      snapshot.selectedEnd.side === side
+    ) {
+      return false;
+    }
+    const selected = endOf(selectedObject, snapshot.selectedEnd.side);
+    const candidate = endOf(object, side);
+    return Boolean(
+      selected.createdBy &&
+        candidate.createdBy &&
+        canLigate(selected, candidate).compatible,
+    );
+  }
 
   return (
     <div className="canvas-viewport">
@@ -53,6 +84,10 @@ export function CanvasWorkbench({
               object.sourceMoleculeId === circularizableObjectId
             }
             canvasRef={canvasRef}
+            compatibleEnds={{
+              left: isCompatibleEnd(object, "left"),
+              right: isCompatibleEnd(object, "right"),
+            }}
             eventSequence={snapshot.eventSequence}
             invalidBond={snapshot.invalidBond}
             key={object.id}
